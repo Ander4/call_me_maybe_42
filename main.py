@@ -3,6 +3,8 @@ import sys """
 from llm_sdk import Small_LLM_Model
 import numpy as np
 import json
+from src.parser.Parser import Parser
+from src.models import Prompt, Function
 
 
 def tests() -> None:
@@ -93,7 +95,7 @@ def test2() -> None:
     print(f"Respuesta generada: '{inteo}', Type: {type(inteo)}")
 
 
-def main() -> None:
+def test3() -> None:
     model = Small_LLM_Model()
     vocab = model.get_path_to_vocab_file()
 
@@ -150,7 +152,7 @@ def main() -> None:
             break
 
 
-def main() -> None:
+def test4() -> None:
     model = Small_LLM_Model()
     vocab = model.get_path_to_vocab_file()
 
@@ -219,6 +221,84 @@ def main() -> None:
             decoded_text = model.decode(generated)
             print(f"Texto generado: {decoded_text}")
             break
+
+
+def main() -> None:
+
+    parser = Parser()
+
+    functions_file = "/sgoinfre/students/aeiros-t/Call_Me/call_me_maybe_42/data/input/test_functions.json"
+    prompts_file = "/sgoinfre/students/aeiros-t/Call_Me/call_me_maybe_42/data/input/test_input.json"
+
+    functions_data = parser.parse_input_file(functions_file)
+    functions_list = parser.parse_items(functions_data, Function)
+
+    prompts_data = parser.parse_input_file(prompts_file)
+    prompts_list = parser.parse_items(prompts_data, Prompt)
+
+    # Hasta aqui seria bloque 1: Manejo de archivos(Tambien se decidiria aqui la ruta del output que de momento no he hecho)
+
+    model = Small_LLM_Model()
+    vocab = model.get_path_to_vocab_file()
+
+    with open(vocab, encoding="utf-8") as file:
+        data = json.load(file)
+
+    functions_info = ""
+    for function in functions_list:
+        functions_info += f"\n- {function.name}: {function.description}"
+
+    i = 0
+    for prompt in prompts_list:
+        formatted_prompt = (
+            f"<|im_start|>user\nAvailable functions:{functions_info}\n\n"
+            f"Question: {prompt.prompt}<|im_end|>\n"
+            "<|im_start|>assistant\n</think>\n"
+        )
+        sentence = model.encode(formatted_prompt)
+        input_ids = sentence[0].tolist()
+
+        alive = []
+        for function in functions_list:
+            candidate = model.encode(function.name)
+            alive.append(candidate[0].tolist())
+
+        step = 0
+        generated = []
+        stopper = data['"']
+
+        # Hasta aqui seria bloque 2: preparacion del modelo o algo asi
+
+        while True:
+
+            allowed = []
+            helper = []
+            for candidate in alive:
+                if step == len(candidate):
+                    allowed.append(stopper)
+                elif candidate[step] not in allowed:
+                    allowed.append(candidate[step])
+
+            logits = model.get_logits_from_input_ids(input_ids)
+            masked = mask_logits(logits, allowed)
+            best = int(np.argmax(masked))
+
+            input_ids.append(best)
+            generated.append(best)
+
+            for candidate in alive:
+                if step < len(candidate):
+                    if candidate[step] == best:
+                        helper.append(candidate)
+
+            alive = helper
+            step += 1
+            if best == stopper:
+                decoded_text = model.decode(generated)
+                print(f"Texto generado para el prompt {i}: {decoded_text}")
+                i += 1
+                break
+            # Hasta aqui seria bloque 3: generacion de respuesta o asi
 
 
 if __name__ == "__main__":
