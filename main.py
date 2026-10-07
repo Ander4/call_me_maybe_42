@@ -1,42 +1,9 @@
-""" from src.parser.Parser import Parser
-import sys """
 from llm_sdk import Small_LLM_Model
-import numpy as np
+from pydantic import BaseModel
 import json
 from src.parser.Parser import Parser
 from src.models import Prompt, Function
-
-
-def tests() -> None:
-
-    model = Small_LLM_Model()
-
-    prompt = "Greet the user"
-    formatted_prompt = f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n</think>\n"
-    sentence = model.encode(formatted_prompt)
-    input_ids = sentence[0].tolist()
-    print(f"Los input_ids: {input_ids}")
-
-    for i in range(30):
-        logits = model.get_logits_from_input_ids(input_ids)
-        index = int(np.argmax(logits))
-        input_ids.append(index)
-
-    decoded_text = model.decode(input_ids)
-    print(f"Texto generado: '{decoded_text}'")
-
-    """ parser = Parser()
-    with open(sys.argv[1], "r") as calling_input:
-        print(sys.argv[1] + ":")
-        for line in calling_input.readlines():
-            parser.parse_line(line)
-
-    print("\n")
-
-    with open(sys.argv[2], "r") as functions_input:
-        print(sys.argv[2] + ":")
-        for line in functions_input.readlines():
-            parser.parse_line(line) """
+import numpy as np
 
 
 def mask_logits(logits: list[float], allowed: list[int]) -> list[float]:
@@ -48,147 +15,64 @@ def mask_logits(logits: list[float], allowed: list[int]) -> list[float]:
     return masked
 
 
-def filter_digits(vocab: dict[str, int]) -> list[int]:
+def allow_all_except(
+        logits: list[float],
+        prohibited: list[int]) -> list[float]:
 
-    filtered: list[int] = []
-    for k, v in vocab.items():
-        if k.isdecimal():
-            filtered.append(v)
+    masked = list(logits)
+    for token_id in prohibited:
+        masked[token_id] = float("-inf")
 
-    return filtered
-
-
-def test2() -> None:
-
-    model = Small_LLM_Model()
-    vocab = model.get_path_to_vocab_file()
-
-    with open(vocab, encoding="utf-8") as file:
-        data = json.load(file)
-
-    filtered_list = filter_digits(data)
-    stop_id = [data["."]]
-    space_id = data["Ġ"]
-    allowed = filtered_list + stop_id + [space_id]
-
-    sentence = model.encode("My password is ")
-    input_ids = sentence[0].tolist()
-    answer = []
-
-    while (True):
-        logits = model.get_logits_from_input_ids(input_ids)
-        masked = mask_logits(logits, allowed)
-        best = int(np.argmax(masked))
-
-        print(f"Best: '{model.decode([best])}'")
-
-        if best in stop_id:
-            break
-
-        input_ids.append(best)
-        answer.append(best)
-
-    decoded_text = model.decode(input_ids)
-    print(f"Texto generado: {decoded_text}")
-    decoded_answer = model.decode(answer)
-    inteo = int(decoded_answer)
-    print(f"Respuesta generada: '{inteo}', Type: {type(inteo)}")
+    return masked
 
 
-def test3() -> None:
-    model = Small_LLM_Model()
-    vocab = model.get_path_to_vocab_file()
+def build_forbidden_tokens(
+        model: Small_LLM_Model, data: dict[str, int]) -> list[int]:
 
-    with open(vocab, encoding="utf-8") as file:
-        data = json.load(file)
+    tokenizer = model.get_path_to_tokenizer_file()
 
-    sentence = model.encode("What is the sum of 2 and 3? Call the function")
-    input_ids = sentence[0].tolist()
+    prohibited: list[int] = []
+    with open(tokenizer, encoding="utf-8") as file:
+        tokenizer_data = json.load(file)
 
-    candidate1 = model.encode("fn_add_numbers")
-    candidate2 = model.encode("fn_greet")
-    candidate3 = model.encode("fn_reverse_string")
+    added_tokens_id = [element["id"]
+                       for element in tokenizer_data["added_tokens"]]
+    new_line_id = model.encode("\n")[0].tolist()[0]
+    tab_id = model.encode("\t")[0].tolist()[0]
 
-    candidate1_ids = candidate1[0].tolist()
-    print(f"Candidate1: {candidate1_ids}")
-    candidate2_ids = candidate2[0].tolist()
-    print(f"Candidate2: {candidate2_ids}")
-    candidate3_ids = candidate3[0].tolist()
-    print(f"Candidate3: {candidate3_ids}")
+    prohibited = [data['"']] + added_tokens_id + [new_line_id, tab_id]
 
-    alive = [candidate1_ids, candidate2_ids, candidate3_ids]
-    step = 0
-    generated = []
-    stopper = data['"']
-    while True:
-        allowed = []
-        helper = []
-        for candidate in alive:
-            if step == len(candidate):
-                if stopper not in allowed:
-                    allowed.append(stopper)
-            elif candidate[step] not in allowed:
-                allowed.append(candidate[step])
-        print(f"Permitidos: {allowed}")
-
-        logits = model.get_logits_from_input_ids(input_ids)
-        masked = mask_logits(logits, allowed)
-        best = int(np.argmax(masked))
-
-        input_ids.append(best)
-        generated.append(best)
-
-        print(f"Best: {best}")
-
-        for candidate in alive:
-            if candidate[step] == best:
-                helper.append(candidate)
-
-        alive = helper
-        step += 1
-        if len(alive) == 1 and step == len(alive[0]):
-            decoded_text = model.decode(generated)
-            print(f"Texto generado: {decoded_text}")
-            break
+    return prohibited
 
 
-def test4() -> None:
-    model = Small_LLM_Model()
-    vocab = model.get_path_to_vocab_file()
+def build_functions_info(functions_list: list[Function]) -> str:
+    functions_info = ""
+    for function in functions_list:
+        functions_info += f"\n- {function.name}: {function.description}"
 
-    with open(vocab, encoding="utf-8") as file:
-        data = json.load(file)
+    return functions_info
 
-    prompt = "Greet the user"
-    formatted_prompt = f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n</think>\n"
+
+def build_chat_prompt(functions_info: str, user_prompt: Prompt,
+                      model: Small_LLM_Model) -> list[int]:
+    formatted_prompt = (
+        f"<|im_start|>user\nAvailable functions:{functions_info}\n\n"
+        f"Question: {user_prompt.prompt}<|im_end|>\n"
+        "<|im_start|>assistant\n</think>\n"
+    )
     sentence = model.encode(formatted_prompt)
     input_ids = sentence[0].tolist()
 
-    candidate1 = model.encode("fn_add_numbers")
-    candidate2 = model.encode("fn_greet")
-    candidate3 = model.encode("fn_reverse_string")
-    candidate4 = model.encode("fn_greet_all")
+    return input_ids
 
-    candidate1_ids = candidate1[0].tolist()
-    print(f"Candidate1: {candidate1_ids}")
-    candidate2_ids = candidate2[0].tolist()
-    print(f"Candidate2: {candidate2_ids}")
-    candidate3_ids = candidate3[0].tolist()
-    print(f"Candidate3: {candidate3_ids}")
-    candidate4_ids = candidate4[0].tolist()
-    print(f"Candidate4: {candidate4_ids}")
 
-    print(model.decode([2891]))   # candidato de "add_numbers"
-    print(model.decode([1889]))   # candidato de "greet"
-    print(model.decode([43277]))  # candidato de "reverse_string"
+def generate_answer(alive: list[list[int]], stopper: int, input_ids: list[int],
+                    model: Small_LLM_Model) -> tuple[list[int], list[int]]:
 
-    alive = [candidate1_ids, candidate2_ids, candidate3_ids, candidate4_ids]
+    ids_copy = list(input_ids)
     step = 0
-    generated = []
-    stopper = data['"']
+    generated: list[int] = []
     while True:
-
-        print(f"========== Vuelta {step} ==========")
 
         allowed = []
         helper = []
@@ -197,16 +81,13 @@ def test4() -> None:
                 allowed.append(stopper)
             elif candidate[step] not in allowed:
                 allowed.append(candidate[step])
-        print(f"Permitidos: {allowed}")
 
-        logits = model.get_logits_from_input_ids(input_ids)
+        logits = model.get_logits_from_input_ids(ids_copy)
         masked = mask_logits(logits, allowed)
         best = int(np.argmax(masked))
 
-        input_ids.append(best)
+        ids_copy.append(best)
         generated.append(best)
-
-        print(f"Best: {best}")
 
         for candidate in alive:
             if step < len(candidate):
@@ -215,12 +96,10 @@ def test4() -> None:
 
         alive = helper
         step += 1
-        print(f"Alive this turn: {alive}")
-        print("========== Fin Vuelta ==========")
         if best == stopper:
-            decoded_text = model.decode(generated)
-            print(f"Texto generado: {decoded_text}")
             break
+
+    return generated, ids_copy
 
 
 def main() -> None:
@@ -244,64 +123,52 @@ def main() -> None:
     with open(vocab, encoding="utf-8") as file:
         data = json.load(file)
 
-    functions_info = ""
-    for function in functions_list:
-        functions_info += f"\n- {function.name}: {function.description}"
+    build_forbidden_tokens(model, data)
+
+    functions_info = build_functions_info(functions_list)
 
     i = 0
+
+    candidate_tokens = [model.encode(function.name)[0].tolist()
+                        for function in functions_list]
+
     for prompt in prompts_list:
-        formatted_prompt = (
-            f"<|im_start|>user\nAvailable functions:{functions_info}\n\n"
-            f"Question: {prompt.prompt}<|im_end|>\n"
-            "<|im_start|>assistant\n</think>\n"
-        )
-        sentence = model.encode(formatted_prompt)
-        input_ids = sentence[0].tolist()
 
-        alive = []
-        for function in functions_list:
-            candidate = model.encode(function.name)
-            alive.append(candidate[0].tolist())
+        input_ids = build_chat_prompt(functions_info, prompt, model)
 
-        step = 0
-        generated = []
+        alive = list(candidate_tokens)
+
         stopper = data['"']
 
-        # Hasta aqui seria bloque 2: preparacion del modelo o algo asi
+        generated, input_ids = generate_answer(
+            alive, stopper, input_ids, model)
 
-        while True:
+        decoded_text = model.decode(generated)
+        print(f"Texto generado para el prompt {i}: {decoded_text}")
+        i += 1
 
-            allowed = []
-            helper = []
-            for candidate in alive:
-                if step == len(candidate):
-                    allowed.append(stopper)
-                elif candidate[step] not in allowed:
-                    allowed.append(candidate[step])
+        clean_output = decoded_text.removesuffix('"')
+        print(f"Cleaned output: {clean_output}")
 
-            logits = model.get_logits_from_input_ids(input_ids)
-            masked = mask_logits(logits, allowed)
-            best = int(np.argmax(masked))
-
-            input_ids.append(best)
-            generated.append(best)
-
-            for candidate in alive:
-                if step < len(candidate):
-                    if candidate[step] == best:
-                        helper.append(candidate)
-
-            alive = helper
-            step += 1
-            if best == stopper:
-                decoded_text = model.decode(generated)
-                print(f"Texto generado para el prompt {i}: {decoded_text}")
-                i += 1
+        output_function: Function | None = None
+        for function in functions_list:
+            if function.name == clean_output:
+                output_function = function
                 break
-            # Hasta aqui seria bloque 3: generacion de respuesta o asi
+
+        if output_function is None:
+            print(f"Aviso: no se reconoció la función '{clean_output}' "
+                  f"para el prompt: '{prompt.prompt}'. Se omite este prompt.")
+            continue
+
+        to_add = ', "parameters": {"'
+        for param in output_function.parameters.keys():
+            if not_last:
+                to_add += f'{param}":' + generar_valor + ', "'
+            else:
+                to_add += f'{param}":' + generar_valor + '}'
+        print(f"Lo que hay que añadir: {to_add}")
 
 
 if __name__ == "__main__":
     main()
-
-"vocab path: /sgoinfre/students/aeiros-t/students/aeiros-t/.cache/huggingface/hub/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca"
