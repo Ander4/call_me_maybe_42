@@ -6,6 +6,9 @@
         "prompt": "What is the sum of 265 and 345?"
     },
     {
-        "prompt": "Greet user"
+        "prompt": "Greet Shrek"
+    },
+    {
+        "prompt": "Turn on notifications"
     }
 ]

@@ -51,7 +51,9 @@ def select_mask(
             mask = build_forbidden_tokens(model, data)
             masked = allow_all_except(logits, mask)
         case "boolean":
-            print("Soy un boolean")
+            mask = [data["true"], data["false"]]
+            masked = mask_logits(logits, mask)
+            stopper = -1
         case _:
             print("Error, tipo no conocido")
 
@@ -97,6 +99,42 @@ def build_chat_prompt(functions_info: str, user_prompt: Prompt,
     input_ids = sentence[0].tolist()
 
     return input_ids
+
+
+def clean_parameter_output(
+        generated: str, param_type: ParamType, model: Small_LLM_Model) -> str:
+
+    decoded_text = model.decode(generated)
+    match param_type.type:
+        case "number":
+            clean_output = decoded_text.removesuffix(',')
+        case "string":
+            splitted = decoded_text.split('"')
+            clean_output = splitted[0]
+        case "boolean":
+            clean_output = decoded_text
+        case _:
+            print("Error, tipo no conocido")
+            clean_output = "Error"
+
+    return clean_output
+
+
+def convert_param_value(
+        text: str, param_type: ParamType) -> float | str | bool:
+
+    match param_type.type:
+        case "number":
+            return_value = float(text)
+        case "string":
+            return_value = text
+        case "boolean":
+            return_value = bool(text)
+        case _:
+            print("Error, tipo no conocido")
+            return_value = "Error"
+
+    return return_value
 
 
 def generate_answer(alive: list[list[int]], stopper: int, input_ids: list[int],
@@ -152,11 +190,18 @@ def generate_parameter(param_type: ParamType,
         ids_copy.append(best)
         generated.append(best)
 
-        print(
-            f"Best param={best}: {model.decode(best)}, stopper={stopper}: {model.decode(stopper)}")
-        print(f"Lo generado hasta ahora: {model.decode(generated)}")
-        if best == stopper:
+        if param_type.type == "string":
+            """ print(
+                f"Best param={best}: {model.decode(best)}, stopper={stopper}: {model.decode(stopper)}")
+            print(f"Lo generado hasta ahora: {model.decode(generated)}") """
+            decoded_token = model.decode([best])
+            if '"' in decoded_token:
+                break
+        elif param_type.type == "boolean":
             break
+        else:
+            if best == stopper:
+                break
 
     return generated, ids_copy
 
@@ -191,8 +236,11 @@ def main() -> None:
     candidate_tokens = [model.encode(function.name)[0].tolist()
                         for function in functions_list]
 
+    output_list: list[dict[str, str]] = []
+
     for prompt in prompts_list:
 
+        dictionary_to_add: dict[str, str] = {}
         input_ids = build_chat_prompt(functions_info, prompt, model)
 
         alive = list(candidate_tokens)
@@ -220,6 +268,8 @@ def main() -> None:
                   f"para el prompt: '{prompt.prompt}'. Se omite este prompt.")
             continue
 
+        parameters_result: dict[str, int | float | str] = {}
+
         for index, (param_name, param_type) in enumerate(
                 output_function.parameters.items()):
             if index == 0:
@@ -227,12 +277,30 @@ def main() -> None:
             else:
                 to_add = f', "{param_name}": '
 
+            if param_type.type == "string":
+                to_add += '"'
+
             tokens_to_add = model.encode(to_add)[0].tolist()
             input_ids.extend(tokens_to_add)
 
+            # print(f"input_ids antes de generar:{model.decode(input_ids)}")
             # Generacion del modelo
             generated, input_ids = generate_parameter(
                 param_type, data, input_ids, model)
+
+            cleaned_output = clean_parameter_output(
+                generated, param_type, model)
+            parameters_result[param_name] = convert_param_value(
+                cleaned_output, param_type)
+
+        print(
+            f"Generated dictionary for function {output_function.name}:{parameters_result}\n")
+
+        dictionary_to_add["prompt"] = prompt
+        dictionary_to_add["name"] = output_function.name
+        dictionary_to_add["parameters"] = parameters_result
+        output_list.append(dictionary_to_add)
+    print(f"Lista final generada:{output_list}")
 
 
 if __name__ == "__main__":
