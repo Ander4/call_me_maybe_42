@@ -210,8 +210,8 @@ def main() -> None:
 
     parser = Parser()
 
-    functions_file = "/sgoinfre/students/aeiros-t/Call_Me/call_me_maybe_42/data/input/test_functions.json"
-    prompts_file = "/sgoinfre/students/aeiros-t/Call_Me/call_me_maybe_42/data/input/test_input.json"
+    functions_file = "data/input/test_functions.json"
+    prompts_file = "data/input/test_input.json"
 
     functions_data = parser.parse_input_file(functions_file)
     functions_list = parser.parse_items(functions_data, Function)
