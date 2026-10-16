@@ -206,18 +206,32 @@ def generate_parameter(param_type: ParamType,
     return generated, ids_copy
 
 
+def generate_output_json(
+        output: list[dict[str, str | dict[str, int | float | str]]]) -> None:
+
+    path = "data/lost/function_calling_results.json"
+    try:
+        with open(path, "w", encoding="UTF-8") as file:
+            json.dump(output, file, indent=4)
+    except (FileNotFoundError) as e:
+        print(f"An error ocurred when trying to create the output file:\n{e}")
+        exit(1)
+
+
 def main() -> None:
 
     parser = Parser()
 
-    functions_file = "data/input/test_functions.json"
-    prompts_file = "data/input/test_input.json"
+    functions_file = "data/input/functions_definition.json"
+    prompts_file = "data/input/function_calling_tests.json"
 
     functions_data = parser.parse_input_file(functions_file)
     functions_list = parser.parse_items(functions_data, Function)
 
     prompts_data = parser.parse_input_file(prompts_file)
     prompts_list = parser.parse_items(prompts_data, Prompt)
+
+    print(f"Prompts_list:{prompts_list}")
 
     # Hasta aqui seria bloque 1: Manejo de archivos(Tambien se decidiria aqui la ruta del output que de momento no he hecho)
 
@@ -236,11 +250,11 @@ def main() -> None:
     candidate_tokens = [model.encode(function.name)[0].tolist()
                         for function in functions_list]
 
-    output_list: list[dict[str, str]] = []
+    output_list: list[dict[str, str | dict[str, int | float | str]]] = []
 
     for prompt in prompts_list:
 
-        dictionary_to_add: dict[str, str] = {}
+        dictionary_to_add: dict[str, str | dict[str, int | float | str]] = {}
         input_ids = build_chat_prompt(functions_info, prompt, model)
 
         alive = list(candidate_tokens)
@@ -251,11 +265,9 @@ def main() -> None:
             alive, stopper, input_ids, model)
 
         decoded_text = model.decode(generated)
-        print(f"Texto generado para el prompt {i}: {decoded_text}")
         i += 1
 
         clean_output = decoded_text.removesuffix('"')
-        print(f"Cleaned output: {clean_output}")
 
         output_function: Function | None = None
         for function in functions_list:
@@ -283,7 +295,6 @@ def main() -> None:
             tokens_to_add = model.encode(to_add)[0].tolist()
             input_ids.extend(tokens_to_add)
 
-            # print(f"input_ids antes de generar:{model.decode(input_ids)}")
             # Generacion del modelo
             generated, input_ids = generate_parameter(
                 param_type, data, input_ids, model)
@@ -293,14 +304,12 @@ def main() -> None:
             parameters_result[param_name] = convert_param_value(
                 cleaned_output, param_type)
 
-        print(
-            f"Generated dictionary for function {output_function.name}:{parameters_result}\n")
-
-        dictionary_to_add["prompt"] = prompt
+        dictionary_to_add["prompt"] = prompt.prompt
         dictionary_to_add["name"] = output_function.name
         dictionary_to_add["parameters"] = parameters_result
         output_list.append(dictionary_to_add)
-    print(f"Lista final generada:{output_list}")
+
+    generate_output_json(output_list)
 
 
 if __name__ == "__main__":
