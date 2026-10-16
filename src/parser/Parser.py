@@ -15,7 +15,7 @@ class Parser:
             with open(path, encoding="UTF-8") as file:
                 data = json.load(file)
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Exploto el parser por cosas de archivo:\n{e}")
+            print(f"There was an error trying to open the file:\n{e}")
             exit(1)
         return data
 
@@ -25,7 +25,7 @@ class Parser:
         try:
             functions = [model(**item) for item in data]
         except ValidationError as e:
-            print(f"Error validando functions_definition.json: {e}")
+            print(f"Parsing error:\n{e}")
             exit(1)
 
         return functions

@@ -1,5 +1,4 @@
 from llm_sdk import Small_LLM_Model
-from pydantic import BaseModel
 import json
 from src.parser.Parser import Parser
 from src.models import Prompt, Function, ParamType
@@ -8,6 +7,7 @@ import numpy as np
 
 def mask_logits(logits: list[float], allowed: list[int]) -> list[float]:
     """Devuelve una copia de logits con -inf salvo en los IDs permitidos."""
+
     masked = [
         float("-inf")] * len(logits)
     for token_id in allowed:
@@ -55,6 +55,7 @@ def select_mask(
             masked = mask_logits(logits, mask)
             stopper = -1
         case _:
+            # Eliminar este caso ya que siempre va a ser uno de los 3?
             print("Error, tipo no conocido")
 
     return masked, stopper
@@ -71,16 +72,17 @@ def build_forbidden_tokens(
 
     added_tokens_id = [element["id"]
                        for element in tokenizer_data["added_tokens"]]
+
     new_line_id = model.encode("\n")[0].tolist()[0]
     tab_id = model.encode("\t")[0].tolist()[0]
 
-    # prohibited = [data['"']] + added_tokens_id + [new_line_id, tab_id]
     prohibited = added_tokens_id + [new_line_id, tab_id]
 
     return prohibited
 
 
 def build_functions_info(functions_list: list[Function]) -> str:
+
     functions_info = ""
     for function in functions_list:
         functions_info += f"\n- {function.name}: {function.description}"
@@ -90,6 +92,7 @@ def build_functions_info(functions_list: list[Function]) -> str:
 
 def build_chat_prompt(functions_info: str, user_prompt: Prompt,
                       model: Small_LLM_Model) -> list[int]:
+
     formatted_prompt = (
         f"<|im_start|>user\nAvailable functions:{functions_info}\n\n"
         f"Question: {user_prompt.prompt}<|im_end|>\n"
@@ -114,6 +117,7 @@ def clean_parameter_output(
         case "boolean":
             clean_output = decoded_text
         case _:
+            # Lo mismo, no sobra ya que solo va a ser esos 3?
             print("Error, tipo no conocido")
             clean_output = "Error"
 
@@ -131,6 +135,7 @@ def convert_param_value(
         case "boolean":
             return_value = bool(text)
         case _:
+            # Lo mismo, no sobra ya que solo va a ser esos 3?
             print("Error, tipo no conocido")
             return_value = "Error"
 
@@ -191,9 +196,6 @@ def generate_parameter(param_type: ParamType,
         generated.append(best)
 
         if param_type.type == "string":
-            """ print(
-                f"Best param={best}: {model.decode(best)}, stopper={stopper}: {model.decode(stopper)}")
-            print(f"Lo generado hasta ahora: {model.decode(generated)}") """
             decoded_token = model.decode([best])
             if '"' in decoded_token:
                 break
@@ -209,10 +211,15 @@ def generate_parameter(param_type: ParamType,
 def generate_output_json(
         output: list[dict[str, str | dict[str, int | float | str]]]) -> None:
 
-    path = "data/lost/function_calling_results.json"
+    path = "data/output/function_calling_results.json"
     try:
         with open(path, "w", encoding="UTF-8") as file:
+
             json.dump(output, file, indent=4)
+            print(
+                "Succesfully created the output in the following file:"
+                f"\n'{path}'")
+
     except (FileNotFoundError) as e:
         print(f"An error ocurred when trying to create the output file:\n{e}")
         exit(1)
@@ -222,18 +229,14 @@ def main() -> None:
 
     parser = Parser()
 
-    functions_file = "data/input/functions_definition.json"
-    prompts_file = "data/input/function_calling_tests.json"
+    functions_file = "data/input/test_functions.json"
+    prompts_file = "data/input/test_input.json"
 
     functions_data = parser.parse_input_file(functions_file)
     functions_list = parser.parse_items(functions_data, Function)
 
     prompts_data = parser.parse_input_file(prompts_file)
     prompts_list = parser.parse_items(prompts_data, Prompt)
-
-    print(f"Prompts_list:{prompts_list}")
-
-    # Hasta aqui seria bloque 1: Manejo de archivos(Tambien se decidiria aqui la ruta del output que de momento no he hecho)
 
     model = Small_LLM_Model()
     vocab = model.get_path_to_vocab_file()
@@ -276,8 +279,9 @@ def main() -> None:
                 break
 
         if output_function is None:
-            print(f"Aviso: no se reconoció la función '{clean_output}' "
-                  f"para el prompt: '{prompt.prompt}'. Se omite este prompt.")
+            print(f"WARNING: unknown function '{clean_output}' "
+                  f"for the prompt: '{prompt.prompt}'. "
+                  "This prompt will be ommited.")
             continue
 
         parameters_result: dict[str, int | float | str] = {}
@@ -295,7 +299,6 @@ def main() -> None:
             tokens_to_add = model.encode(to_add)[0].tolist()
             input_ids.extend(tokens_to_add)
 
-            # Generacion del modelo
             generated, input_ids = generate_parameter(
                 param_type, data, input_ids, model)
 
