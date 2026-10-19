@@ -1,7 +1,7 @@
-from llm_sdk import Small_LLM_Model
+from llm_sdk.llm_sdk import Small_LLM_Model
 import json
-from src.parser.Parser import Parser
-from src.models import Prompt, Function, ParamType
+from .parser.Parser import Parser
+from .models import Prompt, Function, ParamType
 import numpy as np
 
 
@@ -54,9 +54,6 @@ def select_mask(
             mask = [data["true"], data["false"]]
             masked = mask_logits(logits, mask)
             stopper = -1
-        case _:
-            # Eliminar este caso ya que siempre va a ser uno de los 3?
-            print("Error, tipo no conocido")
 
     return masked, stopper
 
@@ -105,7 +102,8 @@ def build_chat_prompt(functions_info: str, user_prompt: Prompt,
 
 
 def clean_parameter_output(
-        generated: str, param_type: ParamType, model: Small_LLM_Model) -> str:
+        generated: list[int],
+        param_type: ParamType, model: Small_LLM_Model) -> str:
 
     decoded_text = model.decode(generated)
     match param_type.type:
@@ -116,10 +114,6 @@ def clean_parameter_output(
             clean_output = splitted[0]
         case "boolean":
             clean_output = decoded_text
-        case _:
-            # Lo mismo, no sobra ya que solo va a ser esos 3?
-            print("Error, tipo no conocido")
-            clean_output = "Error"
 
     return clean_output
 
@@ -127,6 +121,7 @@ def clean_parameter_output(
 def convert_param_value(
         text: str, param_type: ParamType) -> float | str | bool:
 
+    return_value: float | str | bool
     match param_type.type:
         case "number":
             return_value = float(text)
@@ -134,10 +129,6 @@ def convert_param_value(
             return_value = text
         case "boolean":
             return_value = bool(text)
-        case _:
-            # Lo mismo, no sobra ya que solo va a ser esos 3?
-            print("Error, tipo no conocido")
-            return_value = "Error"
 
     return return_value
 
@@ -220,7 +211,7 @@ def generate_output_json(
                 "Succesfully created the output in the following file:"
                 f"\n'{path}'")
 
-    except (FileNotFoundError) as e:
+    except FileNotFoundError as e:
         print(f"An error ocurred when trying to create the output file:\n{e}")
         exit(1)
 
@@ -229,8 +220,9 @@ def main() -> None:
 
     parser = Parser()
 
-    functions_file = "data/input/test_functions.json"
-    prompts_file = "data/input/test_input.json"
+    functions_file = "data/input/functions_definition.json"
+    prompts_file = "data/input/function_calling_tests.json"
+    # functions_file = "data/output/function_calling_results.json"
 
     functions_data = parser.parse_input_file(functions_file)
     functions_list = parser.parse_items(functions_data, Function)

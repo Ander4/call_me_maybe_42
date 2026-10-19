@@ -1,5 +1,5 @@
-from src.models.Function import Function
-from src.models.Prompt import Prompt
-from src.models.ParamType import ParamType
+from .Function import Function
+from .Prompt import Prompt
+from .ParamType import ParamType
 
 __all__ = ["Function", "Prompt", "ParamType"]

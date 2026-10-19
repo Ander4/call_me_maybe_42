@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import json
-from typing import Any
+from typing import Any, TypeVar
 from pydantic import ValidationError, BaseModel
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class Parser:
@@ -20,7 +22,7 @@ class Parser:
         return data
 
     def parse_items(
-            self, data: list, model: type[BaseModel]) -> list[BaseModel]:
+            self, data: list[dict[str, Any]], model: type[T]) -> list[T]:
 
         try:
             functions = [model(**item) for item in data]
