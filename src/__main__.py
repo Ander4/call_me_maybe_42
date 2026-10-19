@@ -2,103 +2,7 @@ from llm_sdk.llm_sdk import Small_LLM_Model
 import json
 from .parser.Parser import Parser
 from .models import Prompt, Function, ParamType
-import numpy as np
-
-
-def mask_logits(logits: list[float], allowed: list[int]) -> list[float]:
-    """Devuelve una copia de logits con -inf salvo en los IDs permitidos."""
-
-    masked = [
-        float("-inf")] * len(logits)
-    for token_id in allowed:
-        masked[token_id] = logits[token_id]
-    return masked
-
-
-def allow_all_except(
-        logits: list[float],
-        prohibited: list[int]) -> list[float]:
-
-    masked = list(logits)
-    for token_id in prohibited:
-        masked[token_id] = float("-inf")
-
-    return masked
-
-
-def filter_digits(data: dict[str, int]) -> list[int]:
-
-    filtered: list[int] = []
-    for k, v in data.items():
-        if k.isdecimal():
-            filtered.append(v)
-
-    return filtered
-
-
-def select_mask(
-        type: str, model: Small_LLM_Model, data: dict[str, int],
-        logits: list[float]) -> tuple[list[float], int]:
-
-    match type:
-        case "number":
-            stopper = data[","]
-            mask = filter_digits(data)
-            mask.append(stopper)
-            masked = mask_logits(logits, mask)
-        case "string":
-            stopper = data['"']
-            mask = build_forbidden_tokens(model, data)
-            masked = allow_all_except(logits, mask)
-        case "boolean":
-            mask = [data["true"], data["false"]]
-            masked = mask_logits(logits, mask)
-            stopper = -1
-
-    return masked, stopper
-
-
-def build_forbidden_tokens(
-        model: Small_LLM_Model, data: dict[str, int]) -> list[int]:
-
-    tokenizer = model.get_path_to_tokenizer_file()
-
-    prohibited: list[int] = []
-    with open(tokenizer, encoding="utf-8") as file:
-        tokenizer_data = json.load(file)
-
-    added_tokens_id = [element["id"]
-                       for element in tokenizer_data["added_tokens"]]
-
-    new_line_id = model.encode("\n")[0].tolist()[0]
-    tab_id = model.encode("\t")[0].tolist()[0]
-
-    prohibited = added_tokens_id + [new_line_id, tab_id]
-
-    return prohibited
-
-
-def build_functions_info(functions_list: list[Function]) -> str:
-
-    functions_info = ""
-    for function in functions_list:
-        functions_info += f"\n- {function.name}: {function.description}"
-
-    return functions_info
-
-
-def build_chat_prompt(functions_info: str, user_prompt: Prompt,
-                      model: Small_LLM_Model) -> list[int]:
-
-    formatted_prompt = (
-        f"<|im_start|>user\nAvailable functions:{functions_info}\n\n"
-        f"Question: {user_prompt.prompt}<|im_end|>\n"
-        "<|im_start|>assistant\n</think>\n"
-    )
-    sentence = model.encode(formatted_prompt)
-    input_ids = sentence[0].tolist()
-
-    return input_ids
+from .generation import (build_forbidden_tokens, PromptGen, DataGenerator)
 
 
 def clean_parameter_output(
@@ -133,72 +37,6 @@ def convert_param_value(
     return return_value
 
 
-def generate_answer(alive: list[list[int]], stopper: int, input_ids: list[int],
-                    model: Small_LLM_Model) -> tuple[list[int], list[int]]:
-
-    ids_copy = list(input_ids)
-    step = 0
-    generated: list[int] = []
-    while True:
-
-        allowed = []
-        helper = []
-        for candidate in alive:
-            if step == len(candidate):
-                allowed.append(stopper)
-            elif candidate[step] not in allowed:
-                allowed.append(candidate[step])
-
-        logits = model.get_logits_from_input_ids(ids_copy)
-        masked = mask_logits(logits, allowed)
-        best = int(np.argmax(masked))
-
-        ids_copy.append(best)
-        generated.append(best)
-
-        for candidate in alive:
-            if step < len(candidate):
-                if candidate[step] == best:
-                    helper.append(candidate)
-
-        alive = helper
-        step += 1
-        if best == stopper:
-            break
-
-    return generated, ids_copy
-
-
-def generate_parameter(param_type: ParamType,
-                       data: dict[str, int], input_ids: list[int],
-                       model: Small_LLM_Model) -> tuple[list[int],
-                                                        list[int]]:
-
-    ids_copy = list(input_ids)
-    generated: list[int] = []
-    while True:
-
-        logits = model.get_logits_from_input_ids(ids_copy)
-        masked, stopper = select_mask(
-            param_type.type, model, data, logits)
-        best = int(np.argmax(masked))
-
-        ids_copy.append(best)
-        generated.append(best)
-
-        if param_type.type == "string":
-            decoded_token = model.decode([best])
-            if '"' in decoded_token:
-                break
-        elif param_type.type == "boolean":
-            break
-        else:
-            if best == stopper:
-                break
-
-    return generated, ids_copy
-
-
 def generate_output_json(
         output: list[dict[str, str | dict[str, int | float | str]]]) -> None:
 
@@ -222,7 +60,6 @@ def main() -> None:
 
     functions_file = "data/input/functions_definition.json"
     prompts_file = "data/input/function_calling_tests.json"
-    # functions_file = "data/output/function_calling_results.json"
 
     functions_data = parser.parse_input_file(functions_file)
     functions_list = parser.parse_items(functions_data, Function)
@@ -236,31 +73,28 @@ def main() -> None:
     with open(vocab, encoding="utf-8") as file:
         data = json.load(file)
 
-    build_forbidden_tokens(model, data)
-
-    functions_info = build_functions_info(functions_list)
-
-    i = 0
+    build_forbidden_tokens(model)
 
     candidate_tokens = [model.encode(function.name)[0].tolist()
                         for function in functions_list]
 
     output_list: list[dict[str, str | dict[str, int | float | str]]] = []
 
+    prompt_gen = PromptGen(functions_list, model)
+    data_gen = DataGenerator(model, data)
     for prompt in prompts_list:
 
         dictionary_to_add: dict[str, str | dict[str, int | float | str]] = {}
-        input_ids = build_chat_prompt(functions_info, prompt, model)
+        input_ids = prompt_gen.build_chat_prompt(prompt)
 
         alive = list(candidate_tokens)
 
         stopper = data['"']
 
-        generated, input_ids = generate_answer(
-            alive, stopper, input_ids, model)
+        generated, input_ids = data_gen.generate_answer(
+            alive, stopper, input_ids)
 
         decoded_text = model.decode(generated)
-        i += 1
 
         clean_output = decoded_text.removesuffix('"')
 
@@ -291,8 +125,8 @@ def main() -> None:
             tokens_to_add = model.encode(to_add)[0].tolist()
             input_ids.extend(tokens_to_add)
 
-            generated, input_ids = generate_parameter(
-                param_type, data, input_ids, model)
+            generated, input_ids = data_gen.generate_parameter(
+                param_type, input_ids)
 
             cleaned_output = clean_parameter_output(
                 generated, param_type, model)
