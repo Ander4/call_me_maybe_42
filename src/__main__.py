@@ -1,40 +1,8 @@
 from llm_sdk.llm_sdk import Small_LLM_Model
 import json
 from .parser.Parser import Parser
-from .models import Prompt, Function, ParamType
-from .generation import (build_forbidden_tokens, PromptGen, DataGenerator)
-
-
-def clean_parameter_output(
-        generated: list[int],
-        param_type: ParamType, model: Small_LLM_Model) -> str:
-
-    decoded_text = model.decode(generated)
-    match param_type.type:
-        case "number":
-            clean_output = decoded_text.removesuffix(',')
-        case "string":
-            splitted = decoded_text.split('"')
-            clean_output = splitted[0]
-        case "boolean":
-            clean_output = decoded_text
-
-    return clean_output
-
-
-def convert_param_value(
-        text: str, param_type: ParamType) -> float | str | bool:
-
-    return_value: float | str | bool
-    match param_type.type:
-        case "number":
-            return_value = float(text)
-        case "string":
-            return_value = text
-        case "boolean":
-            return_value = bool(text)
-
-    return return_value
+from .models import Prompt, Function
+from .generation import (PromptGen, DataGenerator, convert_param_value)
 
 
 def generate_output_json(
@@ -72,8 +40,6 @@ def main() -> None:
 
     with open(vocab, encoding="utf-8") as file:
         data = json.load(file)
-
-    build_forbidden_tokens(model)
 
     candidate_tokens = [model.encode(function.name)[0].tolist()
                         for function in functions_list]
@@ -128,10 +94,8 @@ def main() -> None:
             generated, input_ids = data_gen.generate_parameter(
                 param_type, input_ids)
 
-            cleaned_output = clean_parameter_output(
-                generated, param_type, model)
             parameters_result[param_name] = convert_param_value(
-                cleaned_output, param_type)
+                param_type, generated, model)
 
         dictionary_to_add["prompt"] = prompt.prompt
         dictionary_to_add["name"] = output_function.name
