@@ -3,12 +3,21 @@ import json
 from .parser.parser import Parser
 from .models import Prompt, Function
 from .generation import (PromptGen, DataGenerator, convert_param_value)
+import argparse
+
+
+class ArgParser(argparse.ArgumentParser):
+
+    def error(self, message):
+        print(self.format_usage())
+        print(f"error: {message}")
+        exit(2)
 
 
 def generate_output_json(
-        output: list[dict[str, str | dict[str, int | float | str]]]) -> None:
+        output: list[dict[str, str | dict[str, int | float | str]]],
+        path: str) -> None:
 
-    path = "data/output/test_output.json"
     try:
         with open(path, "w", encoding="UTF-8") as file:
 
@@ -22,12 +31,28 @@ def generate_output_json(
         exit(1)
 
 
+def create_argparser() -> argparse.Namespace:
+
+    parser = ArgParser(prog="uv run python -m src")
+    parser.add_argument(
+        "--functions_definition", type=str,
+        default="data/input/functions_definition.json")
+    parser.add_argument("--input", type=str,
+                        default="data/input/function_calling_tests.json")
+    parser.add_argument("--output", type=str,
+                        default="data/output/generated_output.json")
+
+    return parser.parse_args()
+
+
 def main() -> None:
 
     parser = Parser()
 
-    functions_file = "data/input/functions_definition.json"
-    prompts_file = "data/input/function_calling_tests.json"
+    args = create_argparser()
+    functions_file = args.functions_definition
+    prompts_file = args.input
+    output_path = args.output
 
     functions_data = parser.parse_input_file(functions_file)
     functions_list = parser.parse_items(functions_data, Function)
@@ -102,7 +127,7 @@ def main() -> None:
         dictionary_to_add["parameters"] = parameters_result
         output_list.append(dictionary_to_add)
 
-    generate_output_json(output_list)
+    generate_output_json(output_list, output_path)
 
 
 if __name__ == "__main__":
