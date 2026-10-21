@@ -1,6 +1,6 @@
 from llm_sdk.llm_sdk import Small_LLM_Model
 import json
-from .parser.Parser import Parser
+from .parser.parser import Parser
 from .models import Prompt, Function
 from .generation import (PromptGen, DataGenerator, convert_param_value)
 
@@ -8,7 +8,7 @@ from .generation import (PromptGen, DataGenerator, convert_param_value)
 def generate_output_json(
         output: list[dict[str, str | dict[str, int | float | str]]]) -> None:
 
-    path = "data/output/function_calling_results.json"
+    path = "data/output/test_output.json"
     try:
         with open(path, "w", encoding="UTF-8") as file:
 

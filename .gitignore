@@ -1,3 +1,4 @@
 Test_env/*
 __pycache__
 .python-version
+data/output/*

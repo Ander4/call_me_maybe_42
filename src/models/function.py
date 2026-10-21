@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from .ParamType import ParamType
+from .param_type import ParamType
 
 
 class Function(BaseModel):

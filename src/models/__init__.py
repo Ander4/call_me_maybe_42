@@ -1,5 +1,5 @@
-from .Function import Function
-from .Prompt import Prompt
-from .ParamType import ParamType
+from .function import Function
+from .prompt import Prompt
+from .param_type import ParamType
 
 __all__ = ["Function", "Prompt", "ParamType"]
