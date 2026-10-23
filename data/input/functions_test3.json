@@ -1,0 +1,47 @@
+[
+    {
+        "name": "fn_calculate_tip",
+        "description": "Calculate the tip amount for a bill given the bill total and tip percentage.",
+        "parameters": {
+            "bill_total": {
+                "type": "number"
+            },
+            "tip_percentage": {
+                "type": "number"
+            }
+        },
+        "returns": {
+            "type": "number"
+        }
+    },
+    {
+        "name": "fn_send_message",
+        "description": "Send a text message to a recipient, optionally marked as urgent.",
+        "parameters": {
+            "recipient": {
+                "type": "string"
+            },
+            "message": {
+                "type": "string"
+            },
+            "urgent": {
+                "type": "boolean"
+            }
+        },
+        "returns": {
+            "type": "boolean"
+        }
+    },
+    {
+        "name": "fn_capitalize_word",
+        "description": "Capitalize the first letter of a given word.",
+        "parameters": {
+            "word": {
+                "type": "string"
+            }
+        },
+        "returns": {
+            "type": "string"
+        }
+    }
+]
