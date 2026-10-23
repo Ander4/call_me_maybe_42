@@ -3,7 +3,17 @@ import json
 
 
 def mask_logits(logits: list[float], allowed: list[int]) -> list[float]:
-    """Devuelve una copia de logits con -inf salvo en los IDs permitidos."""
+    """A function that returns a copy of the logits, with -inf as value except
+    for the allowed IDs.
+
+    Args:
+        logits (list[float]): the raw logits for the next token.
+        allowed (list[int]): a list with the allowed IDs.
+
+    Returns:
+        list[float]: a list with all the logits at -inf value except for the
+            allowed IDs.
+    """
 
     masked = [
         float("-inf")] * len(logits)
@@ -15,6 +25,16 @@ def mask_logits(logits: list[float], allowed: list[int]) -> list[float]:
 def allow_all_except(
         logits: list[float],
         prohibited: list[int]) -> list[float]:
+    """A function that returns a copy of the logits, with -inf as value to the
+    IDs that are not allowed.
+
+    Args:
+        logits (list[float]): the raw logits for the next token.
+        prohibited (list[int]): a list with the prohibited IDs.
+
+    Returns:
+        list[float]: a list that has the prohibited IDs as -inf.
+    """
 
     masked = list(logits)
     for token_id in prohibited:
@@ -24,6 +44,15 @@ def allow_all_except(
 
 
 def filter_digits(data: dict[str, int]) -> list[int]:
+    """A function that returns a list with the IDs of every digit from 0 to 9.
+
+    Args:
+        data(dict[str, int]): the vocabulary from the model, in a dictionary
+            format.
+
+    Returns:
+        list[int]: a list containing the IDs of every digit from 0 to 9.
+    """
 
     filtered: list[int] = []
     for k, v in data.items():
@@ -34,6 +63,15 @@ def filter_digits(data: dict[str, int]) -> list[int]:
 
 
 def build_forbidden_tokens(model: Small_LLM_Model) -> list[int]:
+    """A function that returns a list with the IDs that are prohibited for the
+    model.
+
+    Args:
+        model (Small_LLM_Model): the LLM model.
+
+    Returns:
+        list[int]: a list containing the IDs of the prohibited tokens.
+    """
 
     tokenizer = model.get_path_to_tokenizer_file()
 

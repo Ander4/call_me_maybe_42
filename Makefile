@@ -27,4 +27,4 @@ lint-strict:
 	flake8 src
 	mypy src --strict
 
-.SILENT: all run debug clean lint lint-strict
+.SILENT: all install run debug clean lint lint-strict

@@ -4,11 +4,18 @@ from .parser.parser import Parser
 from .models import Prompt, Function
 from .generation import (PromptGen, DataGenerator, convert_param_value)
 import argparse
+from typing import NoReturn
 
 
 class ArgParser(argparse.ArgumentParser):
+    """Customizes ArgumentParser's error formatting.
 
-    def error(self, message):
+    Subclass of argparse.ArgumentParser that overrides error() to print
+    a shorter error message without repeating the program name.
+    """
+
+    def error(self, message: str) -> NoReturn:
+
         print(self.format_usage())
         print(f"error: {message}")
         exit(2)
@@ -17,6 +24,14 @@ class ArgParser(argparse.ArgumentParser):
 def generate_output_json(
         output: list[dict[str, str | dict[str, int | float | str]]],
         path: str) -> None:
+    """A function that transforms the given list into a JSON and
+    saves it into the given file
+
+    Attributes:
+            output (list[dict[str, str | dict[str, int | float | str]]]): the
+                generated output by the model
+            path (str): the path of the file in which the JSON will be saved
+    """
 
     try:
         with open(path, "w", encoding="UTF-8") as file:
@@ -28,10 +43,15 @@ def generate_output_json(
 
     except FileNotFoundError as e:
         print(f"An error ocurred when trying to create the output file:\n{e}")
-        exit(1)
+        exit(2)
 
 
 def create_argparser() -> argparse.Namespace:
+    """A function that parses the inputted arguments
+
+    Return:
+            Namespace: the created parsed arguments
+    """
 
     parser = ArgParser(prog="uv run python -m src")
     parser.add_argument(
@@ -54,11 +74,15 @@ def main() -> None:
     prompts_file = args.input
     output_path = args.output
 
-    functions_data = parser.parse_input_file(functions_file)
-    functions_list = parser.parse_items(functions_data, Function)
+    try:
+        functions_data = parser.parse_input_file(functions_file)
+        functions_list = parser.parse_items(functions_data, Function)
 
-    prompts_data = parser.parse_input_file(prompts_file)
-    prompts_list = parser.parse_items(prompts_data, Prompt)
+        prompts_data = parser.parse_input_file(prompts_file)
+        prompts_list = parser.parse_items(prompts_data, Prompt)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Error parsing input files: {e}")
+        exit(1)
 
     model = Small_LLM_Model()
     vocab = model.get_path_to_vocab_file()
@@ -76,7 +100,7 @@ def main() -> None:
     for prompt in prompts_list:
 
         dictionary_to_add: dict[str, str | dict[str, int | float | str]] = {}
-        input_ids = prompt_gen.build_chat_prompt(prompt)
+        input_ids = prompt_gen.get_input_ids(prompt)
 
         alive = list(candidate_tokens)
 

@@ -9,4 +9,12 @@ class ParamTypeName(str, Enum):
 
 
 class ParamType(BaseModel):
+    """An auxiliary class that contains the type of a parameter.
+
+    Attributes:
+        type (ParamTypeName): the type of the parameter, which can only be:
+            - number
+            - string
+            - boolean.
+    """
     type: ParamTypeName
