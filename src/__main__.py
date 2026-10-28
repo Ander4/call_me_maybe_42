@@ -56,11 +56,11 @@ def create_argparser() -> argparse.Namespace:
     parser = ArgParser(prog="uv run python -m src")
     parser.add_argument(
         "--functions_definition", type=str,
-        default="data/input/functions_definition.json")
+        default="functions_definition.json")
     parser.add_argument("--input", type=str,
-                        default="data/input/function_calling_tests.json")
+                        default="function_calling_tests.json")
     parser.add_argument("--output", type=str,
-                        default="data/output/generated_output.json")
+                        default="output.json")
 
     return parser.parse_args()
 
@@ -69,10 +69,15 @@ def main() -> None:
 
     parser = Parser()
 
+    input_path = "data/input/"
+    output_path = "data/output/"
     args = create_argparser()
-    functions_file = args.functions_definition
-    prompts_file = args.input
-    output_path = args.output
+    functions_file = input_path + args.functions_definition
+    prompts_file = input_path + args.input
+    output_file = output_path + args.output
+
+    print(
+        f"Functions:{functions_file}, Input:{prompts_file}, Output:{output_file}")
 
     try:
         functions_data = parser.parse_input_file(functions_file)
@@ -151,7 +156,7 @@ def main() -> None:
         dictionary_to_add["parameters"] = parameters_result
         output_list.append(dictionary_to_add)
 
-    generate_output_json(output_list, output_path)
+    generate_output_json(output_list, output_file)
 
 
 if __name__ == "__main__":
