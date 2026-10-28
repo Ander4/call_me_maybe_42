@@ -46,6 +46,15 @@ def generate_output_json(
         exit(2)
 
 
+def validate_filenames(args: argparse.Namespace) -> None:
+
+    files: list[str] = [args.functions_definition, args.input, args.output]
+    for file in files:
+        if (not file.endswith(".json")):
+            print(f"Error: the file '{file}' isn't a .json file")
+            exit(1)
+
+
 def create_argparser() -> argparse.Namespace:
     """A function that parses the inputted arguments
 
@@ -72,6 +81,7 @@ def main() -> None:
     input_path = "data/input/"
     output_path = "data/output/"
     args = create_argparser()
+    validate_filenames(args)
     functions_file = input_path + args.functions_definition
     prompts_file = input_path + args.input
     output_file = output_path + args.output
