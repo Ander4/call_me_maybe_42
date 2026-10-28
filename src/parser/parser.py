@@ -2,7 +2,8 @@
 import json
 from typing import Any, TypeVar
 from pydantic import ValidationError, BaseModel
-from src.errors import InputFileNotFoundError, InvalidJSONError
+from src.errors import (InputFileNotFoundError,
+                        InvalidJSONError, InvalidDataError)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -35,7 +36,9 @@ class Parser:
         return data
 
     def parse_items(
-            self, data: list[dict[str, Any]], model: type[T]) -> list[T]:
+            self, data: list[dict[str, Any]],
+            model: type[T],
+            path: str) -> list[T]:
         """A function that checks wether the given content is valid.
 
         Attributes:
@@ -45,10 +48,11 @@ class Parser:
                     It can be either the Function or the Prompt class.
         """
 
-        try:
-            functions = [model(**item) for item in data]
-        except ValidationError as e:
-            print(f"Parsing error:\n{e}")
-            exit(1)
+        functions: list[T] = []
+        for index, item in enumerate(data):
+            try:
+                functions.append(model(**item))
+            except ValidationError as e:
+                raise InvalidDataError(path, index, e)
 
         return functions

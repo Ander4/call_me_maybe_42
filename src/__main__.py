@@ -76,17 +76,19 @@ def main() -> None:
     prompts_file = input_path + args.input
     output_file = output_path + args.output
 
-    print(
-        f"Functions:{functions_file}, Input:{prompts_file}, Output:{output_file}")
+    """ print(
+        f"Functions:{functions_file}, Input:{prompts_file}, Output:{output_file}") """
 
     try:
         functions_data = parser.parse_input_file(functions_file)
-        functions_list = parser.parse_items(functions_data, Function)
+        functions_list = parser.parse_items(
+            functions_data, Function, functions_file)
 
         prompts_data = parser.parse_input_file(prompts_file)
-        prompts_list = parser.parse_items(prompts_data, Prompt)
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"Error parsing input files: {e}")
+        prompts_list = parser.parse_items(prompts_data, Prompt, prompts_file)
+    except (FileNotFoundError, json.JSONDecodeError, Exception) as e:
+        # print(f"Error parsing input files: {e}")
+        print(e)
         exit(1)
 
     model = Small_LLM_Model()
