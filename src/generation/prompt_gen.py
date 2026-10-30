@@ -61,6 +61,6 @@ class PromptGen():
         """
         prompt = self._build_chat_prompt(user_prompt)
         sentence = self._model.encode(prompt)
-        input_ids = sentence[0].tolist()
+        input_ids: list[int] = sentence[0].tolist()
 
         return input_ids
