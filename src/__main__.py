@@ -60,9 +60,16 @@ def validate_filenames(args: argparse.Namespace) -> None:
     """
 
     files: list[str] = [args.functions_definition, args.input, args.output]
-    for file in files:
+    """ for file in files:
         if (not file.endswith(".json")):
-            print(f"Error: the file '{file}' isn't a .json file")
+            print(f"Error: the file '{file}' isn't a valid .json file")
+            exit(1) """
+
+    for file in files:
+        splitted = file.split(".")
+        print(f"{file} splitted={splitted}")
+        if (len(splitted) != 2) or (splitted[1] != "json"):
+            print(f"Error: the file '{file}' isn't a valid .json file")
             exit(1)
 
 
