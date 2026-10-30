@@ -42,5 +42,5 @@ class InvalidDataError(Exception):
         msg = f"Parsing error on file '{file}':\nMissing fields for element {
             index}:\n"
         for element in error.errors():
-            msg = msg + "- " + element['loc'][0] + "\n"
+            msg = f"{msg} - {element['loc'][0]}\n"
         super().__init__(msg)

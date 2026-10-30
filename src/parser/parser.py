@@ -28,12 +28,12 @@ class Parser:
 
         try:
             with open(path, encoding="UTF-8") as file:
-                data = json.load(file)
+                data: list[dict[str, Any]] = json.load(file)
+                return data
         except FileNotFoundError:
             raise InputFileNotFoundError(path)
         except json.JSONDecodeError as e:
             raise InvalidJSONError(path, e.doc, e.pos)
-        return data
 
     def parse_items(
             self, data: list[dict[str, Any]],
