@@ -11,7 +11,7 @@ class ArgParser(argparse.ArgumentParser):
     """Customizes ArgumentParser's error formatting.
 
     Subclass of argparse.ArgumentParser that overrides error() to print
-    a shorter error message without repeating the program name.
+    a shorter, personalized error message.
     """
 
     def error(self, message: str) -> NoReturn:
@@ -27,10 +27,10 @@ def generate_output_json(
     """A function that transforms the given list into a JSON and
     saves it into the given file
 
-    Attributes:
-            output (list[dict[str, str | dict[str, int | float | str]]]): the
-                generated output by the model
-            path (str): the path of the file in which the JSON will be saved
+    Args:
+        output (list[dict[str, str | dict[str, int | float | str]]]): the
+            generated output by the model
+        path (str): the path of the file in which the JSON will be saved
     """
 
     try:
@@ -49,12 +49,15 @@ def generate_output_json(
         print(f"You don't have permission to write into the file '{path}'.")
         exit(2)
 
-    """ except (FileNotFoundError, PermissionError) as e:
-        print(f"An error ocurred when trying to create the output file:\n{e}")
-        exit(2) """
-
 
 def validate_filenames(args: argparse.Namespace) -> None:
+    """A function that validates that the given files have the correct .json
+    extension.
+
+    Args:
+        args (argparse.Namespace): the created pared arguments which contains
+            the file's names.
+    """
 
     files: list[str] = [args.functions_definition, args.input, args.output]
     for file in files:
@@ -93,9 +96,6 @@ def main() -> None:
     functions_file = input_path + args.functions_definition
     prompts_file = input_path + args.input
     output_file = output_path + args.output
-
-    """ print(
-        f"Functions:{functions_file}, Input:{prompts_file}, Output:{output_file}") """
 
     try:
         functions_data = parser.parse_input_file(functions_file)

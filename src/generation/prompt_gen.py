@@ -20,7 +20,7 @@ class PromptGen():
     def _build_functions_info(self, functions_list: list[Function]) -> None:
         """A function that builds the functions info from a list of Functions.
 
-        Attributes:
+        Args:
             functions_list (list[Function]): the list of functions
         """
         self._functions_info = ""
@@ -35,7 +35,7 @@ class PromptGen():
         The built prompt will be given to the model in a format that it
         understands.
 
-        Attributes:
+        Args:
             user_promt (Prompt): the prompt from the user.
 
         Returns:
@@ -53,7 +53,7 @@ class PromptGen():
     def get_input_ids(self, user_prompt: Prompt) -> list[int]:
         """A function that returns the input ids generated from the prompt.
 
-        Attributes:
+        Args:
             user_promt (Prompt): the prompt from the user.
 
         Returns:
