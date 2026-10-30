@@ -40,10 +40,18 @@ def generate_output_json(
             print(
                 "Succesfully created the output in the following file:"
                 f"\n'{path}'")
-
-    except FileNotFoundError as e:
-        print(f"An error ocurred when trying to create the output file:\n{e}")
+    except FileNotFoundError:
+        print(
+            "The folder 'output' doesn't exist when trying to write into "
+            f"'{path}'.")
         exit(2)
+    except PermissionError:
+        print(f"You don't have permission to write into the file '{path}'.")
+        exit(2)
+
+    """ except (FileNotFoundError, PermissionError) as e:
+        print(f"An error ocurred when trying to create the output file:\n{e}")
+        exit(2) """
 
 
 def validate_filenames(args: argparse.Namespace) -> None:
