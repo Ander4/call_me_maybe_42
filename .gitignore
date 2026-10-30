@@ -1,4 +1,4 @@
-Test_env/*
+.venv/*
 __pycache__
 .python-version
 data/output/*
