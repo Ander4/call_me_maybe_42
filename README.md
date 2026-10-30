@@ -34,7 +34,7 @@ Using this command the program will run with the default files:
 
 - **data/input/functions_definition.json** for the JSON with the available functions.
 - **data/input/function_calling_tests.json** for the JSON containing the prompts.
-- **data/output/output.json** for the file that will contain the generated JSON.
+- **data/output/function_calling_results.json** for the file that will contain the generated JSON.
 
 The other option is to run the program with custom files:
 
@@ -58,9 +58,9 @@ This command will run the program with the default files for function definition
 The files must follow these rules:
 - The input files (functions_definition and input) must be inside the ``data/input/`` folder and must exist.
 - The output file has to be inside the ``data/output/`` folder.
-- The ``data/output/`` directory must exist.
+- If the ``data/output/`` directory doesn't exist, the program will create it.
 - If the output exists, it must be editable, so that the program can override it.
-- If the output file doesn't exist, the program will create it inside the ``data/output/`` folder.
+- If the output file doesn't exist, the program will create it.
 
 ## File formats
 
@@ -90,7 +90,7 @@ The ``function_calling_tests.json`` must be a list with ``prompt``.
 ]
 ```
 
-The ``output.json`` will be a list containing the generated answer for each given prompt. Each answer will contain a ``prompt``, ``name`` and ``parameters``.
+The ``function_calling_results.json`` will be a list containing the generated answer for each given prompt. Each answer will contain a ``prompt``, ``name`` and ``parameters``.
 
 ```json
 [
@@ -230,7 +230,7 @@ Specifying custom input/output files:
 ```bash
 uv run python -m src --functions_definition data/input/functions_definition.json \
                       --input data/input/function_calling_tests.json \
-                      --output data/output/output.json
+                      --output data/output/function_calling_results.json
 ```
 
 Equivalent shortcuts are available through the provided `Makefile`:
@@ -238,7 +238,7 @@ Equivalent shortcuts are available through the provided `Makefile`:
 ```bash
 make install
 make run
-make run ARGS="--functions_definition functions_definition.json --input function_calling_tests.json --output output.json"
+make run ARGS="--functions_definition functions_definition.json --input function_calling_tests.json --output function_calling_results.json"
 ```
 
 # Resources

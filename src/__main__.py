@@ -5,6 +5,7 @@ from .models import Prompt, Function
 from .generation import (PromptGen, DataGenerator, convert_param_value)
 import argparse
 from typing import NoReturn
+import os
 
 
 class ArgParser(argparse.ArgumentParser):
@@ -38,13 +39,8 @@ def generate_output_json(
 
             json.dump(output, file, indent=4)
             print(
-                "Succesfully created the output in the following file:"
+                "Successfully created the output in the following file:"
                 f"\n'{path}'")
-    except FileNotFoundError:
-        print(
-            "The folder 'output' doesn't exist when trying to write into "
-            f"'{path}'.")
-        exit(2)
     except PermissionError:
         print(f"You don't have permission to write into the file '{path}'.")
         exit(2)
@@ -60,14 +56,8 @@ def validate_filenames(args: argparse.Namespace) -> None:
     """
 
     files: list[str] = [args.functions_definition, args.input, args.output]
-    """ for file in files:
-        if (not file.endswith(".json")):
-            print(f"Error: the file '{file}' isn't a valid .json file")
-            exit(1) """
-
     for file in files:
         splitted = file.split(".")
-        print(f"{file} splitted={splitted}")
         if (len(splitted) != 2) or (splitted[1] != "json"):
             print(f"Error: the file '{file}' isn't a valid .json file")
             exit(1)
@@ -83,26 +73,41 @@ def create_argparser() -> argparse.Namespace:
     parser = ArgParser(prog="uv run python -m src")
     parser.add_argument(
         "--functions_definition", type=str,
-        default="functions_definition.json")
+        default="data/input/functions_definition.json")
     parser.add_argument("--input", type=str,
-                        default="function_calling_tests.json")
+                        default="data/input/function_calling_tests.json")
     parser.add_argument("--output", type=str,
-                        default="output.json")
+                        default="data/output/function_calling_results.json")
 
     return parser.parse_args()
+
+
+def check_output_folder(file: str) -> None:
+
+    dir = os.path.dirname(file)
+    if "src" in dir:
+        print(
+            f"Invalid directory '{dir}': it is prohibited to write into the "
+            "src/ directory.")
+        exit(1)
+    try:
+        os.makedirs(dir, exist_ok=True)
+    except FileNotFoundError:
+        print(
+            f"No output directory especified on the file '{file}', can't"
+            "create the file on the root of the program.")
+        exit(1)
 
 
 def main() -> None:
 
     parser = Parser()
 
-    input_path = "data/input/"
-    output_path = "data/output/"
     args = create_argparser()
     validate_filenames(args)
-    functions_file = input_path + args.functions_definition
-    prompts_file = input_path + args.input
-    output_file = output_path + args.output
+    functions_file = args.functions_definition
+    prompts_file = args.input
+    output_file = args.output
 
     try:
         functions_data = parser.parse_input_file(functions_file)
@@ -112,9 +117,10 @@ def main() -> None:
         prompts_data = parser.parse_input_file(prompts_file)
         prompts_list = parser.parse_items(prompts_data, Prompt, prompts_file)
     except (FileNotFoundError, json.JSONDecodeError, Exception) as e:
-        # print(f"Error parsing input files: {e}")
         print(e)
         exit(1)
+
+    check_output_folder(output_file)
 
     model = Small_LLM_Model()
     vocab = model.get_path_to_vocab_file()
