@@ -1,14 +1,5 @@
 [
     {
-        "prompt": "What is the sum of 2 and 3?"
-    },
-    {
-        "prompt": "What is the sum of 265 and 345?"
-    },
-    {
-        "prompt": "Greet user"
-    },
-    {
-        "prompt": "Turn on notifications"
+        "prompt": "Calculate compound interest on 1234567.89 at 0.0375 rate for 23 years"
     }
 ]

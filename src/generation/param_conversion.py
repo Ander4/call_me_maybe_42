@@ -18,7 +18,7 @@ def clean_parameter_output(
 
     decoded_text = model.decode(generated)
     match param_type.type:
-        case "number":
+        case "number" | "integer":
             clean_output = decoded_text.removesuffix(',')
         case "string":
             splitted = decoded_text.split('"')
@@ -49,7 +49,10 @@ def convert_param_value(
     return_value: float | str | bool
     match param_type.type:
         case "number":
+            print(f"Text to convert to float: '{text}'")
             return_value = float(text)
+        case "integer":
+            return_value = int(text)
         case "string":
             return_value = text
         case "boolean":

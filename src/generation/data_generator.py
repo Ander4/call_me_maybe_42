@@ -44,7 +44,7 @@ class DataGenerator():
         """
 
         match type:
-            case "number":
+            case "number" | "integer":
                 stopper = self._data[","]
                 mask = filter_digits(self._data)
                 mask.append(stopper)

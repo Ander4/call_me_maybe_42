@@ -6,6 +6,7 @@ class ParamTypeName(str, Enum):
     NUMBER = "number"
     STRING = "string"
     BOOLEAN = "boolean"
+    INTEGER = "integer"
 
 
 class ParamType(BaseModel):
@@ -16,5 +17,6 @@ class ParamType(BaseModel):
             - number
             - string
             - boolean.
+            - integer
     """
     type: ParamTypeName

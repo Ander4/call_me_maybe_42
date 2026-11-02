@@ -19,7 +19,7 @@
     "description": "Check if an integer is even, returns True if even, False if odd.",
     "parameters": {
       "n": {
-        "type": "number"
+        "type": "integer"
       }
     },
     "returns": {
@@ -37,7 +37,7 @@
         "type": "number"
       },
       "years": {
-        "type": "number"
+        "type": "integer"
       }
     },
     "returns": {

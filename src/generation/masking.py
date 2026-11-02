@@ -56,7 +56,7 @@ def filter_digits(data: dict[str, int]) -> list[int]:
 
     filtered: list[int] = []
     for k, v in data.items():
-        if k.isdecimal():
+        if k.isdecimal() or k == ".":
             filtered.append(v)
 
     return filtered
