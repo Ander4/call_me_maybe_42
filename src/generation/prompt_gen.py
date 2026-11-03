@@ -42,11 +42,12 @@ class PromptGen():
             str: the prompt in a format that the model understands.
         """
 
-        formatted_prompt = (
-            f"<|im_start|>user\nAvailable functions:{self._functions_info}\n\n"
-            f"Question: {user_prompt.prompt}<|im_end|>\n"
-            "<|im_start|>assistant\n</think>\n"
-        )
+        formatted_prompt = (f"""
+<|im_start|>user\nAvailable functions:{self._functions_info}
+Rules:\n"source_string" must be exactly the raw string or
+ sentence to modify, without any changes. Do NOT perform any
+ substitutions or edits yourself inside the JSON values.
+Question: {user_prompt.prompt}<|im_end|>\n<|im_start|>assistant\n</think>\n""")
 
         return formatted_prompt
 
