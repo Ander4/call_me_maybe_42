@@ -1,5 +1,6 @@
 from llm_sdk.llm_sdk import Small_LLM_Model
 from src.models import ParamType
+import json
 
 
 def clean_parameter_output(
@@ -49,12 +50,14 @@ def convert_param_value(
     return_value: float | str | bool
     match param_type.type:
         case "number":
-            print(f"Text to convert to float: '{text}'")
             return_value = float(text)
         case "integer":
             return_value = int(text)
         case "string":
-            return_value = text
+            try:
+                return_value = json.loads(f'"{text}"')
+            except json.JSONDecodeError:
+                return_value = text
         case "boolean":
             return_value = bool(text)
 
