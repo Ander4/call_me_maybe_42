@@ -23,11 +23,15 @@ class PromptGen():
         Args:
             functions_list (list[Function]): the list of functions
         """
-        self._functions_info = ""
+        lines = []
         for function in functions_list:
-            self._functions_info += f"\n- {
-                function.name}: {
-                function.description} "
+            params = ", ".join(
+                f"{name}: {ptype.type.value}"
+                for name, ptype in function.parameters.items()
+            )
+            lines.append(f"- {function.name}({params}): "
+                         f"{function.description}")
+        self._functions_info = "\n" + "\n".join(lines)
 
     def _build_chat_prompt(
             self, user_prompt: Prompt) -> str:
@@ -42,12 +46,18 @@ class PromptGen():
             str: the prompt in a format that the model understands.
         """
 
-        formatted_prompt = (f"""
-<|im_start|>user\nAvailable functions:{self._functions_info}
-Rules:\n"source_string" must be exactly the raw string or
- sentence to modify, without any changes. Do NOT perform any
- substitutions or edits yourself inside the JSON values.
-Question: {user_prompt.prompt}<|im_end|>\n<|im_start|>assistant\n</think>\n""")
+        formatted_prompt = (
+            "<|im_start|>user\n"
+            f"Available functions:{self._functions_info}\n\n"
+            "Rules:\n"
+            "Text values must be copied exactly as they appear in the question"
+            ", without any changes. Do NOT perform any substitutions or edits "
+            "yourself inside the values.\n"
+            "When asked to replace all of something, create a pattern that"
+            "encapsulates it.\n\n"
+            f"Question: {user_prompt.prompt}<|im_end|>\n"
+            "<|im_start|>assistant\n</think>\n"
+        )
 
         return formatted_prompt
 

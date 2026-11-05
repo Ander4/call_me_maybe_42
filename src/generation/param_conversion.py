@@ -1,6 +1,7 @@
 from llm_sdk.llm_sdk import Small_LLM_Model
 from src.models import ParamType
 import json
+from .json_strings import find_closing_quote
 
 
 def clean_parameter_output(
@@ -22,8 +23,9 @@ def clean_parameter_output(
         case "number" | "integer":
             clean_output = decoded_text.removesuffix(',')
         case "string":
-            splitted = decoded_text.split('"')
-            clean_output = splitted[0]
+            end = find_closing_quote(decoded_text)
+            raw = decoded_text if end is None else decoded_text[:end]
+            clean_output = raw.removeprefix(" ")
         case "boolean":
             clean_output = decoded_text
 

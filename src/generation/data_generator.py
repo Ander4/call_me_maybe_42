@@ -3,6 +3,7 @@ from .masking import (filter_digits, mask_logits,
                       build_forbidden_tokens, allow_all_except)
 import numpy as np
 from src.models import ParamType
+from .json_strings import find_closing_quote
 
 
 class DataGenerator():
@@ -119,7 +120,7 @@ class DataGenerator():
 
         Args:
             param_type (ParamType): a class with the type of the desired
-                parameter(number, string or boolean).
+                parameter(number, integer, string or boolean).
             input_ids (list[int]): the input ids generated from the prompt +
                 the generated function.
 
@@ -142,8 +143,8 @@ class DataGenerator():
             generated.append(best)
 
             if param_type.type == "string":
-                decoded_token = self._model.decode([best])
-                if '"' in decoded_token:
+                text = self._model.decode(generated)
+                if find_closing_quote(text) is not None:
                     break
             elif param_type.type == "boolean":
                 break
