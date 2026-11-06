@@ -126,16 +126,22 @@ In both cases, generation proceeds the same way at each step: compute the logits
 
 ## 1. Prompt generation
 
-The user's natural language request is wrapped in the model's expected chat format, together with the list of available functions and their descriptions, so the model has the information it needs to choose between them. The model's reasoning mode is explicitly skipped to keep generation within the time budget, rather than letting it produce a free-form reasoning block before answering.
+The user's natural language request is wrapped in the model's expected chat format, together with the list of available functions, their parameters and their descriptions, so the model has the information it needs to choose between them. Some rules have also been added to help the model with the generation process. The model's reasoning mode is explicitly skipped to keep generation within the time budget, rather than letting it produce a free-form reasoning block before answering.
 
 **Example.** Given the prompt `"What is the sum of 2 and 3?"` and the three example functions (`fn_add_numbers`, `fn_greet`, `fn_reverse_string`), the text actually fed to the model looks like this:
 
 ```
 <|im_start|>user
 Available functions:
-- fn_add_numbers: Add two numbers together and return their sum.
-- fn_greet: Generate a greeting message for a person by name.
-- fn_reverse_string: Reverse a string and return the reversed result.
+- fn_add_numbers(a: number, b: number): Add two numbers together and return their sum.
+- fn_greet(name: string): Generate a greeting message for a person by name.
+- fn_reverse_string(s: string): Reverse a string and return the reversed result.
+- fn_get_square_root(a: number): Calculate the square root of a number.
+- fn_substitute_string_with_regex(source_string: string, regex: string, replacement: string): Replace all occurrences matching a regex pattern in a string.
+
+Rules:
+Text values must be copied exactly as they appear in the question, without any changes. Do NOT perform any substitutions or edits yourself inside the values.
+When asked to replace all of something, create a pattern that encapsulates it.
 
 Question: What is the sum of 2 and 3?<|im_end|>
 <|im_start|>assistant

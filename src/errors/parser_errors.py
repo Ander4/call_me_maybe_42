@@ -33,14 +33,17 @@ class InvalidDataError(Exception):
 
     Attributes:
         file (str): the specific file that is invalid
-        doc (str): The JSON document being parsed
-        pos (int): The start index of doc where the parsing failed
+        index (int): the start index of the element that failed
+        error (ValidationError): the original error, with all the information
+            to refactor into the msg
     """
 
     def __init__(self, file: str, index: int, error: ValidationError) -> None:
-
-        msg = f"Parsing error on file '{file}':\nMissing fields for element {
-            index}:\n"
+        parts = []
         for element in error.errors():
-            msg = f"{msg} - {element['loc'][0]}\n"
+            field = ".".join(str(p)
+                             for p in element["loc"]) or "(the item itself)"
+            parts.append(f"{field}: {element['msg']}")
+        msg = f"Invalid data in '{file}', item {index}: " + "; ".join(parts)
+
         super().__init__(msg)

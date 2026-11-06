@@ -53,7 +53,7 @@ class PromptGen():
             "Text values must be copied exactly as they appear in the question"
             ", without any changes. Do NOT perform any substitutions or edits "
             "yourself inside the values.\n"
-            "When asked to replace all of something, create a pattern that"
+            "When asked to replace all of something, create a pattern that "
             "encapsulates it.\n\n"
             f"Question: {user_prompt.prompt}<|im_end|>\n"
             "<|im_start|>assistant\n</think>\n"

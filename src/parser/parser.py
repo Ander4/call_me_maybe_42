@@ -18,7 +18,7 @@ class Parser:
         """A function that checks wether the given file exists and has a valid
         JSON format.
 
-        Attributes:
+        Args:
             path (str): the path of the file
 
         Return:
@@ -41,7 +41,7 @@ class Parser:
             path: str) -> list[T]:
         """A function that checks wether the given content is valid.
 
-        Attributes:
+        Args:
                 data (list[dict[str, Any]]): the extracted content of the JSON
                     file
                 model (type[T]): the class to which the data will be parsed to.
@@ -51,7 +51,7 @@ class Parser:
         functions: list[T] = []
         for index, item in enumerate(data):
             try:
-                functions.append(model(**item))
+                functions.append(model.model_validate(item))
             except ValidationError as e:
                 raise InvalidDataError(path, index, e)
 
