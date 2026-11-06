@@ -35,7 +35,8 @@ class DataGenerator():
 
         Args:
             type (str): the type of the parameter that is going to be
-                generated, which can only be number, string or boolean.
+                generated, which can only be number, integer, string or
+                boolean.
             logits (list[float]): the raw logits for the next token.
 
         Return:

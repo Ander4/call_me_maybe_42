@@ -152,7 +152,7 @@ The name of the function to call is generated under an allow-list mask: all cand
 
 ## 3. Parameter generation
 
-Once a function is selected, its parameters are generated one at a time, in order. Before each parameter's value, the fixed JSON scaffolding (its name and the opening syntax expected for its type) is added to the context so the model only has to generate the value itself. The masking strategy and stop condition used depend on the parameter's declared type (`number`, `string`, `boolean`), ensuring the generated value always matches the expected type.
+Once a function is selected, its parameters are generated one at a time, in order. Before each parameter's value, the fixed JSON scaffolding (its name and the opening syntax expected for its type) is added to the context so the model only has to generate the value itself. The masking strategy and stop condition used depend on the parameter's declared type (`number`, `integer`, `string`, `boolean`), ensuring the generated value always matches the expected type.
 
 **Example.** For `fn_add_numbers`, with parameters `a` and `b` (both `number`), the program builds the scaffolding one parameter at a time:
 
@@ -177,11 +177,13 @@ Each generated value is cleaned of the scaffolding tokens used to detect its end
 
 - **No explicit `max_steps` safety limit on parameter generation**: tested extensively with deliberately ambiguous prompts (no concrete data to extract). Once the quote-ambiguity bug(explained later) was fixed, no case of uncontrolled generation was observed. Adding a limit was considered unnecessary complexity without evidence it was needed; documented here as a conscious trade-off rather than an oversight.
 
-- **No `case _` fallback in the type-dispatch logic**: `ParamType.type` is a pydantic `Enum` with exactly three members (`number`, `string`, `boolean`). Pydantic already rejects any other value when the input JSON is parsed, so a defensive fallback branch would be unreachable dead code.
+- **No `case _` fallback in the type-dispatch logic**: `ParamType.type` is a pydantic `Enum` with exactly three members (`number`, `integer`, `string`, `boolean`). Pydantic already rejects any other value when the input JSON is parsed, so a defensive fallback branch would be unreachable dead code.
 
 ## Challenges Faced
 
 - **Quote-ambiguity**: initially, the model's first generated token for a string parameter could be a fused "space+opening-quote" token. Since the stop condition only checked "does this token contain a quote", it stopped immediately, producing empty values. Fixed by having the program itself emit the opening quote as part of the fixed prompt text, so the model only ever needs to generate the closing one.
+
+- **Escaped quotes**: during testing, it was seen that an escaped quote in the question(`\"`) created a wrong output because of the previous reason. This was fixed by instead of searching for the first quote(`"`), searching for the first non-escaped quote.
 
 - **Fused tokens breaking exact-ID comparisons**: the BPE tokenizer sometimes merges a stop character with surrounding content into a single token (e.g. `"}\n`). Comparing `best_token_id == stop_token_id` failed silently in these cases. Solved by decoding the generated token and checking for the target character in its text instead of comparing IDs.
 
@@ -191,7 +193,7 @@ Each generated value is cleaned of the scaffolding tokens used to detect its end
 
 ## Known Limitations
 
-- String values are assumed not to contain a literal `"` character before the closing one; cleanup takes everything before the first quote found.
+- String values are assumed not to contain a literal `"` character before the closing one; cleanup takes everything before the first non escaped quote found.
 
 - A backslash (`\`) is currently unrestricted inside generated strings and could in theory produce an invalid JSON escape sequence; not observed in practice during testing.
 
